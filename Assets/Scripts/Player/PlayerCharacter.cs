@@ -23,11 +23,15 @@ public class PlayerCharacter : MonoBehaviour
     [Header("Movement")]
     public float moveSpeed = 5f;
     public bool isMoving = false;
-    
+
     private Vector2 targetPosition;
     private Camera playerCamera;
     private UIManager uiManager;
-    
+
+    // Auto-save
+    private float saveTimer = 0f;
+    private const float SAVE_INTERVAL = 30f; // Save every 30 seconds
+
     public static PlayerCharacter Instance { get; private set; }
     
     private void Awake()
@@ -55,6 +59,17 @@ public class PlayerCharacter : MonoBehaviour
     {
         HandleMovement();
         HandleInput();
+
+        // Auto-save character state every 30 seconds
+        if (SessionManager.Instance != null && SessionManager.Instance.IsLoggedIn)
+        {
+            saveTimer += Time.deltaTime;
+            if (saveTimer >= SAVE_INTERVAL)
+            {
+                SaveCharacterToServer();
+                saveTimer = 0f;
+            }
+        }
     }
     
     private void InitializePlayer()
@@ -163,6 +178,50 @@ public class PlayerCharacter : MonoBehaviour
     private void Die()
     {
         Debug.Log("Player died!");
+
+        // Save state before death
+        if (SessionManager.Instance != null && SessionManager.Instance.IsLoggedIn)
+        {
+            SaveCharacterToServer();
+        }
+    }
+
+    public CharacterStateDTO GetCharacterState()
+    {
+        return new CharacterStateDTO
+        {
+            currentHealth = this.currentHealth,
+            currentStamina = this.currentStamina,
+            currentMagic = this.currentMagic,
+            positionX = transform.position.x,
+            positionY = transform.position.y,
+            worldOffsetX = 0f, // WorldManager offset can be added later if needed
+            worldOffsetY = 0f
+        };
+    }
+
+    private void SaveCharacterToServer()
+    {
+        if (APIClient.Instance == null)
+        {
+            Debug.LogWarning("APIClient not available for saving");
+            return;
+        }
+
+        CharacterStateDTO state = GetCharacterState();
+        string token = SessionManager.Instance.GetAuthToken();
+
+        APIClient.Instance.SaveCharacterState(token, state, (success, message) =>
+        {
+            if (success)
+            {
+                Debug.Log("Character state saved successfully");
+            }
+            else
+            {
+                Debug.LogWarning($"Failed to save character state: {message}");
+            }
+        });
     }
     
     private void OnTriggerEnter2D(Collider2D other)

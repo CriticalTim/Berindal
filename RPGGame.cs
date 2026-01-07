@@ -15,14 +15,44 @@ public class RPGGame : MonoBehaviour
     private void Start()
     {
         Debug.Log("=== 2D Pixelart RPG Starting ===");
-        Debug.Log($"Player Class: {selectedClass}");
+        Debug.Log("Showing title screen...");
+
+        // Create Title Screen Manager instead of immediately starting the game
+        GameObject titleScreen = new GameObject("Title Screen Manager");
+        TitleScreenManager tsm = titleScreen.AddComponent<TitleScreenManager>();
+    }
+
+    public void StartGameWithCharacter(CharacterDataDTO characterData)
+    {
+        Debug.Log($"Starting game for {characterData.username} as {characterData.playerClass}");
         Debug.Log("Click anywhere to move your character!");
         Debug.Log("Walk into enemies to attack them (requires stamina)");
         Debug.Log("Watch your health, stamina, and magic bars in the top right corner");
-        
+
+        // Parse class from string
+        selectedClass = ParseClass(characterData.playerClass);
+
+        // Create Game Manager
         GameObject gameManager = new GameObject("Game Manager");
         GameManager gm = gameManager.AddComponent<GameManager>();
         gm.startingClass = selectedClass;
+
+        // Restore character state if it exists
+        if (characterData.state != null)
+        {
+            gm.RestoreCharacterState(characterData.state);
+        }
+    }
+
+    private PlayerClass ParseClass(string playerClass)
+    {
+        switch (playerClass)
+        {
+            case "Warrior": return PlayerClass.Warrior;
+            case "Healer": return PlayerClass.Healer;
+            case "Mage": return PlayerClass.Mage;
+            default: return PlayerClass.Warrior;
+        }
     }
 }
 

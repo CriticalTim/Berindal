@@ -28,6 +28,31 @@ public class GameManager : MonoBehaviour
         SetupWorld();
         SetupEnemySpawning();
     }
+
+    public void RestoreCharacterState(CharacterStateDTO state)
+    {
+        // Wait a frame for player to be fully initialized
+        StartCoroutine(RestoreStateNextFrame(state));
+    }
+
+    private System.Collections.IEnumerator RestoreStateNextFrame(CharacterStateDTO state)
+    {
+        yield return null;
+
+        if (PlayerCharacter.Instance != null)
+        {
+            PlayerCharacter.Instance.currentHealth = state.currentHealth;
+            PlayerCharacter.Instance.currentStamina = state.currentStamina;
+            PlayerCharacter.Instance.currentMagic = state.currentMagic;
+            PlayerCharacter.Instance.transform.position = new Vector3(state.positionX, state.positionY, 0);
+
+            // Update UI to reflect restored stats
+            UIManager uiManager = FindObjectOfType<UIManager>();
+            uiManager?.UpdateUI();
+
+            Debug.Log($"Character state restored: HP={state.currentHealth}, Stamina={state.currentStamina}, Magic={state.currentMagic}");
+        }
+    }
     
     private void SetupCamera()
     {
